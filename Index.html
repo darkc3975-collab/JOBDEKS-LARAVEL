@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Laravel App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --accent: #6366f1;
+    --accent-light: #e0e7ff;
+    --accent-dark: #4338ca;
+    --sidebar-w: 240px;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: #0f172a;
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transition: transform .3s;
+  }
+  .sidebar-logo {
+    padding: 1.5rem 1.25rem 1rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: white; font-weight: 600;
+    font-family: 'DM Mono', monospace;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: white; }
+  .logo-sub  { font-size: 11px; color: #64748b; margin-top: 1px; }
+
+  .sidebar-section { padding: .5rem 1rem .25rem; font-size: 10px; font-weight: 500; color: #475569; letter-spacing: .08em; text-transform: uppercase; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: .6rem 1.25rem;
+    color: #94a3b8; font-size: 13.5px;
+    cursor: pointer; border-radius: 8px; margin: 1px .75rem;
+    transition: all .15s; text-decoration: none;
+    position: relative;
+  }
+  .nav-item:hover { background: #1e293b; color: #e2e8f0; }
+  .nav-item.active { background: #1e293b; color: white; }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 20px; background: var(--accent); border-radius: 2px;
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent); color: white;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 100px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 1rem 1.25rem;
+    border-top: 1px solid #1e293b;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: white; flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 500; color: #e2e8f0; }
+  .user-role { font-size: 11px; color: #64748b; }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* TOPBAR */
+  .topbar {
+    background: white; border-bottom: 1px solid #e2e8f0;
+    padding: .875rem 1.75rem;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-size: 17px; font-weight: 600; }
+  .breadcrumb { font-size: 12px; color: #94a3b8; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1px solid #e2e8f0; background: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; color: #64748b;
+    transition: all .15s; position: relative;
+  }
+  .topbar-btn:hover { background: #f8fafc; color: #0f172a; }
+  .notif-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); border: 2px solid white;
+  }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 8px; padding: .375rem .75rem;
+    font-size: 13px; color: #94a3b8;
+  }
+  .search-box input {
+    border: none; background: none; outline: none;
+    font-size: 13px; color: #0f172a; font-family: 'DM Sans', sans-serif;
+    width: 160px;
+  }
+
+  /* CONTENT */
+  .content { padding: 1.75rem; flex: 1; }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card {
+    background: white; border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #f1f5f9;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    transition: transform .15s, box-shadow .15s;
+    animation: fadeUp .4s ease both;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+  .stat-card:nth-child(1){ animation-delay:.05s }
+  .stat-card:nth-child(2){ animation-delay:.1s }
+  .stat-card:nth-child(3){ animation-delay:.15s }
+  .stat-card:nth-child(4){ animation-delay:.2s }
+  .stat-info {}
+  .stat-label { font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 600; color: #0f172a; font-family: 'DM Mono', monospace; }
+  .stat-change { font-size: 12px; margin-top: 4px; }
+  .stat-change.up { color: var(--success); }
+  .stat-change.down { color: var(--danger); }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  /* GRID 2 col */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .grid-3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+
+  /* CARD */
+  .card {
+    background: white; border-radius: 14px;
+    border: 1px solid #f1f5f9;
+    animation: fadeUp .4s ease both;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+  }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .card-body { padding: 1.25rem 1.5rem; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    padding: .75rem 1rem; text-align: left;
+    font-size: 11px; font-weight: 600; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 1px solid #f1f5f9; background: #fafafa;
+  }
+  tbody td { padding: .875rem 1rem; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafafa; }
+
+  /* BADGE */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-green  { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef9c3; color: #854d0e; }
+  .badge-red    { background: #fee2e2; color: #991b1b; }
+  .badge-blue   { background: #dbeafe; color: #1e40af; }
+  .badge-gray   { background: #f1f5f9; color: #475569; }
+
+  /* PROGRESS */
+  .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: .75rem; }
+  .progress-label { font-size: 13px; min-width: 100px; }
+  .progress-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 100px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 100px; transition: width 1s ease; }
+  .progress-pct { font-size: 12px; color: #94a3b8; min-width: 36px; text-align: right; font-family: 'DM Mono', monospace; }
+
+  /* ACTIVITY */
+  .activity-item { display: flex; gap: 12px; padding: .75rem 0; border-bottom: 1px solid #f8fafc; }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .activity-text { font-size: 13px; line-height: 1.5; flex: 1; }
+  .activity-time { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  /* QUICK ACCESS */
+  .quick-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; }
+  .quick-item {
+    background: #f8fafc; border: 1px solid #f1f5f9;
+    border-radius: 10px; padding: .875rem;
+    text-align: center; cursor: pointer;
+    transition: all .15s;
+  }
+  .quick-item:hover { background: var(--accent-light); border-color: #c7d2fe; }
+  .quick-icon { font-size: 22px; margin-bottom: 5px; }
+  .quick-label { font-size: 12px; font-weight: 500; color: #475569; }
+
+  /* SECTION TABS */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: .5rem 1rem; border-radius: 8px; font-size: 13px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+    border: 1px solid #e2e8f0; background: white;
+    color: #475569; transition: all .15s; font-weight: 500;
+  }
+  .btn:hover { background: #f8fafc; }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .btn-sm { padding: .3rem .75rem; font-size: 12px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 1rem; }
+  .form-label { display: block; font-size: 12px; font-weight: 500; color: #475569; margin-bottom: 5px; }
+  .form-control {
+    width: 100%; padding: .5rem .75rem;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif;
+    color: #0f172a; outline: none; background: white;
+    transition: border-color .15s;
+  }
+  .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+  textarea.form-control { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  /* MODAL */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,.5); z-index: 200;
+    align-items: center; justify-content: center;
+    padding: 1rem; backdrop-filter: blur(2px);
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 16px;
+    width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+    animation: scaleIn .2s ease;
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+  }
+  .modal-title { font-size: 15px; font-weight: 600; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: none; background: #f1f5f9; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #64748b; transition: all .15s;
+  }
+  .modal-close:hover { background: #e2e8f0; }
+  .modal-body { padding: 1.25rem 1.5rem; }
+  .modal-footer {
+    padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9;
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+
+  /* CHART */
+  .chart-container { position: relative; height: 220px; }
+
+  /* CALENDAR MINI */
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+  .cal-day { text-align: center; font-size: 11px; padding: 4px 2px; border-radius: 6px; cursor: pointer; }
+  .cal-day.head { color: #94a3b8; font-weight: 500; cursor: default; }
+  .cal-day:not(.head):hover { background: var(--accent-light); color: var(--accent); }
+  .cal-day.today { background: var(--accent); color: white; font-weight: 600; }
+  .cal-day.has-task::after { content: '•'; display: block; font-size: 8px; color: var(--warning); line-height: 1; margin-top: -2px; }
+
+  /* PRODUK TABLE */
+  .product-img { width: 36px; height: 36px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .action-btns { display: flex; gap: 4px; }
+  .action-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .15s; }
+  .action-btn:hover { background: #f8fafc; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    .grid-2, .grid-3-1 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .quick-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">L</div>
+    <div>
+      <div class="logo-text">LaravelApp</div>
+      <div class="logo-sub">example-app.test</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Menu Utama</div>
+  <a class="nav-item active" onclick="showSection('dashboard',this)">
+    <span class="nav-icon">⊞</span> Dashboard
+  </a>
+  <a class="nav-item" onclick="showSection('produk',this)">
+    <span class="nav-icon">📦</span> Produk
+    <span class="nav-badge" id="nb-produk">0</span>
+  </a>
+  <a class="nav-item" onclick="showSection('users',this)">
+    <span class="nav-icon">👥</span> Users
+  </a>
+  <a class="nav-item" onclick="showSection('laporan',this)">
+    <span class="nav-icon">📊</span> Laporan
+  </a>
+
+  <div class="sidebar-section" style="margin-top:.5rem">Belajar</div>
+  <a class="nav-item" onclick="showSection('jobdesk',this)">
+    <span class="nav-icon">✅</span> Jobdesk 10 Hari
+  </a>
+  <a class="nav-item" onclick="showSection('kendala',this)">
+    <span class="nav-icon">🔧</span> Kendala Teknis
+    <span class="nav-badge" id="nb-kendala" style="background:#ef4444">0</span>
+  </a>
+  <a class="nav-item" onclick="showSection('routes',this)">
+    <span class="nav-icon">🛣️</span> Route List
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="avatar">A</div>
+    <div>
+      <div class="user-name">Arun</div>
+      <div class="user-role">Developer</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-btn" onclick="toggleSidebar()" style="display:none" id="hamburger">☰</button>
+      <div>
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="breadcrumb" id="page-breadcrumb">example-app.test / dashboard</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" placeholder="Cari sesuatu...">
+      </div>
+      <button class="topbar-btn" onclick="showSection('kendala',null)">
+        🔧
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+      <button class="topbar-btn">🌙</button>
+      <div class="avatar" style="width:36px;height:36px;font-size:13px;cursor:pointer">A</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="section active" id="sec-dashboard">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">Total Produk</div>
+            <div class="stat-value" id="sc-produk">0</div>
+            <div class="stat-change up">↑ dari database</div>
+          </div>
+          <div class="stat-icon" style="background:#ede9fe">📦</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value" id="sc-users">1</div>
+            <div class="stat-change up">↑ login aktif</div>
+          </div>
+          <div class="stat-icon" style="background:#dcfce7">👥</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">Progress Belajar</div>
+            <div class="stat-value" id="sc-progress">0%</div>
+            <div class="stat-change" id="sc-progress-sub">0 dari 0 tugas</div>
+          </div>
+          <div class="stat-icon" style="background:#fef9c3">📚</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-info">
+            <div class="stat-label">Kendala Aktif</div>
+            <div class="stat-value" id="sc-kendala">0</div>
+            <div class="stat-change down" id="sc-kendala-sub">belum selesai</div>
+          </div>
+          <div class="stat-icon" style="background:#fee2e2">🔧</div>
+        </div>
+      </div>
+
+      <div class="grid-3-1">
+        <!-- Chart -->
+        <div class="card" style="animation-delay:.25s">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Progress Belajar per Hari</div>
+              <div class="card-sub">10 hari jobdesk Laravel</div>
+            </div>
+            <span class="badge badge-blue">Chart</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="progressChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Access -->
+        <div class="card" style="animation-delay:.3s">
+          <div class="card-header">
+            <div class="card-title">Akses Cepat</div>
+          </div>
+          <div class="card-body">
+            <div class="quick-grid">
+              <div class="quick-item" onclick="showSection('produk',null)">
+                <div class="quick-icon">📦</div>
+                <div class="quick-label">Produk</div>
+              </div>
+              <div class="quick-item" onclick="openAddProduk()">
+                <div class="quick-icon">➕</div>
+                <div class="quick-label">Tambah</div>
+              </div>
+              <div class="quick-item" onclick="showSection('laporan',null)">
+                <div class="quick-icon">📊</div>
+                <div class="quick-label">Laporan</div>
+              </div>
+              <div class="quick-item" onclick="showSection('jobdesk',null)">
+                <div class="quick-icon">✅</div>
+                <div class="quick-label">Jobdesk</div>
+              </div>
+              <div class="quick-item" onclick="showSection('kendala',null)">
+                <div class="quick-icon">🔧</div>
+                <div class="quick-label">Kendala</div>
+              </div>
+              <div class="quick-item" onclick="showSection('routes',null)">
+                <div class="quick-icon">🛣️</div>
+                <div class="quick-label">Routes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Progress Jobdesk -->
+        <div class="card" style="animation-delay:.35s">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Progress Jobdesk</div>
+              <div class="card-sub">Checklist 10 hari belajar Laravel</div>
+            </div>
+            <button class="btn btn-sm" onclick="showSection('jobdesk',null)">Lihat Semua</button>
+          </div>
+          <div class="card-body" id="dash-progress-list"></div>
+        </div>
+
+        <!-- Aktivitas -->
+        <div class="card" style="animation-delay:.4s">
+          <div class="card-header">
+            <div class="card-title">Aktivitas Terbaru</div>
+          </div>
+          <div class="card-body" id="dash-activity">
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#ede9fe">📦</div>
+              <div><div class="activity-text">Belum ada produk ditambahkan</div><div class="activity-time">Mulai tambah produk</div></div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#dcfce7">✅</div>
+              <div><div class="activity-text">Jobdesk 10 hari siap dikerjakan</div><div class="activity-time">Klik tab Jobdesk</div></div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot" style="background:#dbeafe">🚀</div>
+              <div><div class="activity-text">Laravel Herd berjalan di example-app.test</div><div class="activity-time">Server aktif</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== PRODUK ===== -->
+    <div class="section" id="sec-produk">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Manajemen Produk</div>
+            <div class="card-sub">Data produk dari database MySQL</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddProduk()">+ Tambah Produk</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px">#</th>
+                  <th>Nama Produk</th>
+                  <th>Deskripsi</th>
+                  <th>Harga</th>
+                  <th>Stok</th>
+                  <th>Status</th>
+                  <th style="width:100px">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="produk-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;font-size:13px">
+                  Belum ada produk. Klik "+ Tambah Produk"
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== USERS ===== -->
+    <div class="section" id="sec-users">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Manajemen Users</div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table>
+            <thead><tr><th>#</th><th>Nama</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:30px;height:30px;font-size:11px">A</div>Arun</div></td>
+                <td style="color:#94a3b8">arun@example.com</td>
+                <td><span class="badge badge-blue">Admin</span></td>
+                <td><span class="badge badge-green">● Aktif</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== LAPORAN ===== -->
+    <div class="section" id="sec-laporan">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Statistik Produk</div></div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="laporanChart"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Ringkasan</div></div>
+          <div class="card-body">
+            <div class="progress-row"><span class="progress-label">Produk Aktif</span><div class="progress-track"><div class="progress-fill" style="width:80%;background:var(--accent)"></div></div><span class="progress-pct" id="lap-aktif">0</span></div>
+            <div class="progress-row"><span class="progress-label">Stok Tersedia</span><div class="progress-track"><div class="progress-fill" style="width:65%;background:var(--success)"></div></div><span class="progress-pct" id="lap-stok">0</span></div>
+            <div class="progress-row"><span class="progress-label">Progress Belajar</span><div class="progress-track"><div class="progress-fill" id="lap-prog-bar" style="width:0%;background:var(--warning)"></div></div><span class="progress-pct" id="lap-prog">0%</span></div>
+            <div class="progress-row"><span class="progress-label">Kendala Selesai</span><div class="progress-track"><div class="progress-fill" id="lap-done-bar" style="width:0%;background:#ef4444"></div></div><span class="progress-pct" id="lap-done">0%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== JOBDESK ===== -->
+    <div class="section" id="sec-jobdesk">
+      <div id="jobdesk-container"></div>
+    </div>
+
+    <!-- ===== KENDALA ===== -->
+    <div class="section" id="sec-kendala">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Dashboard Kendala Teknis</div>
+            <div class="card-sub">Catat dan pantau semua kendala saat belajar</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddKendala()">+ Tambah Kendala</button>
+        </div>
+
+        <!-- Kendala Stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;padding:1rem 1.5rem;border-bottom:1px solid #f1f5f9">
+          <div style="text-align:center;padding:.75rem;background:#f8fafc;border-radius:10px">
+            <div style="font-size:22px;font-weight:600" id="ks-total">0</div>
+            <div style="font-size:11px;color:#94a3b8">Total</div>
+          </div>
+          <div style="text-align:center;padding:.75rem;background:#fee2e2;border-radius:10px">
+            <div style="font-size:22px;font-weight:600;color:#991b1b" id="ks-open">0</div>
+            <div style="font-size:11px;color:#991b1b">Belum</div>
+          </div>
+          <div style="text-align:center;padding:.75rem;background:#fef9c3;border-radius:10px">
+            <div style="font-size:22px;font-weight:600;color:#854d0e" id="ks-prog">0</div>
+            <div style="font-size:11px;color:#854d0e">Diproses</div>
+          </div>
+          <div style="text-align:center;padding:.75rem;background:#dcfce7;border-radius:10px">
+            <div style="font-size:22px;font-weight:600;color:#166534" id="ks-done">0</div>
+            <div style="font-size:11px;color:#166534">Selesai</div>
+          </div>
+        </div>
+
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" class="form-control" style="flex:1;min-width:180px;max-width:280px" id="k-search" placeholder="🔍 Cari kendala..." oninput="renderKendala()">
+          <select class="form-control" style="width:auto" id="k-filter" onchange="renderKendala()">
+            <option value="">Semua Status</option>
+            <option value="open">Belum Selesai</option>
+            <option value="progress">Diproses</option>
+            <option value="done">Selesai</option>
+          </select>
+          <button class="btn btn-sm" onclick="clearKFilter()">Reset</button>
+        </div>
+
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:80px">Gambar</th>
+                  <th>Kendala</th>
+                  <th>Solusi / Tindakan</th>
+                  <th style="width:90px">Tanggal</th>
+                  <th style="width:130px">Status</th>
+                  <th style="width:80px">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="k-tbody"></tbody>
+            </table>
+            <div id="k-empty" style="display:none;text-align:center;padding:2.5rem;color:#94a3b8;font-size:13px">
+              <div style="font-size:32px;margin-bottom:8px">📭</div>
+              Belum ada kendala. Klik "+ Tambah Kendala"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ROUTES ===== -->
+    <div class="section" id="sec-routes">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Route List — web.php</div>
+          <span class="badge badge-blue">php artisan route:list</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table>
+            <thead><tr><th>Method</th><th>URI</th><th>Controller / Action</th><th>Middleware</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/</td><td style="color:#94a3b8">HomeController@index</td><td><span class="badge badge-gray">web</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/home</td><td style="color:#94a3b8">HomeController@home</td><td><span class="badge badge-gray">web</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/dashboard</td><td style="color:#94a3b8">DashboardController@index</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products</td><td style="color:#94a3b8">ProductController@index</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products/create</td><td style="color:#94a3b8">ProductController@create</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-green">POST</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products</td><td style="color:#94a3b8">ProductController@store</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products/{id}/edit</td><td style="color:#94a3b8">ProductController@edit</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-yellow">PUT</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products/{id}</td><td style="color:#94a3b8">ProductController@update</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-red">DELETE</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/products/{id}</td><td style="color:#94a3b8">ProductController@destroy</td><td><span class="badge badge-yellow">auth</span></td></tr>
+              <tr><td><span class="badge badge-blue">GET</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/login</td><td style="color:#94a3b8">AuthController@login</td><td><span class="badge badge-gray">guest</span></td></tr>
+              <tr><td><span class="badge badge-green">POST</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/login</td><td style="color:#94a3b8">AuthController@authenticate</td><td><span class="badge badge-gray">guest</span></td></tr>
+              <tr><td><span class="badge badge-green">POST</span></td><td style="font-family:'DM Mono',monospace;font-size:12px">/logout</td><td style="color:#94a3b8">AuthController@logout</td><td><span class="badge badge-yellow">auth</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL PRODUK -->
+<div class="overlay" id="modal-produk">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="produk-modal-title">Tambah Produk</div>
+      <button class="modal-close" onclick="closeModal('modal-produk')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nama Produk *</label>
+        <input type="text" class="form-control" id="p-nama" placeholder="cth: Laptop Gaming">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deskripsi</label>
+        <textarea class="form-control" id="p-deskripsi" placeholder="Deskripsi produk..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Harga (Rp)</label>
+          <input type="number" class="form-control" id="p-harga" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stok</label>
+          <input type="number" class="form-control" id="p-stok" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="p-status">
+          <option value="aktif">Aktif</option>
+          <option value="nonaktif">Non-aktif</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-produk')">Batal</button>
+      <button class="btn btn-primary" onclick="saveProduk()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KENDALA -->
+<div class="overlay" id="modal-kendala">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="k-modal-title">Tambah Kendala</div>
+      <button class="modal-close" onclick="closeModal('modal-kendala')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Gambar (opsional — drag/drop/paste Ctrl+V)</label>
+        <div id="drop-zone" tabindex="0"
+          style="border:1.5px dashed #e2e8f0;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;font-size:13px;color:#94a3b8;transition:all .15s;outline:none"
+          onclick="document.getElementById('k-file').click()"
+          ondragover="dzOver(event)" ondragleave="dzLeave(event)"
+          ondrop="dzDrop(event)" onpaste="dzPaste(event)">
+          Klik, seret, atau tempel gambar screenshot
+          <input type="file" id="k-file" accept="image/*" style="display:none" onchange="kFileChange(event)">
+          <img id="k-preview" style="display:none;max-width:100%;max-height:130px;border-radius:8px;margin-top:8px" alt="">
+        </div>
+        <button class="btn btn-sm" id="k-clear-img" style="display:none;margin-top:6px" onclick="kClearImg()">Hapus Gambar</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deskripsi Kendala *</label>
+        <textarea class="form-control" id="k-kendala" placeholder="Tuliskan kendala yang terjadi..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Solusi / Tindakan *</label>
+        <textarea class="form-control" id="k-solusi" placeholder="Apa yang harus dilakukan?"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="k-status">
+            <option value="open">Belum Selesai</option>
+            <option value="progress">Diproses</option>
+            <option value="done">Selesai</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tanggal</label>
+          <input type="date" class="form-control" id="k-date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-kendala')">Batal</button>
+      <button class="btn btn-primary" onclick="saveKendala()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───
+const DAYS=[
+  {day:1,title:"Setup + Struktur",tasks:["Pastikan example-app.test berjalan","Pahami semua folder Laravel","Buat route GET '/'","Buat route '/about' dan '/contact'","Buat 3 file blade","Akses ketiga halaman di browser"]},
+  {day:2,title:"Blade Template",tasks:["Buat layouts/app.blade.php","Buat components/navbar.blade.php","Buat components/footer.blade.php","Terapkan @extends di semua halaman","Gunakan @yield dan @section","Gunakan @include untuk komponen","Pasang Tailwind CDN"]},
+  {day:3,title:"Controller",tasks:["Buat PageController","Pindahkan logika dari web.php","Buat method home(), about(), contact()","Kirim data dengan compact()","Tampilkan {{ $variable }} di blade","Semua route pakai Controller"]},
+  {day:4,title:"Database + Migration",tasks:["Setup MySQL di .env","Buat migration create_products_table","Tambah kolom: nama, deskripsi, harga, stok","Jalankan php artisan migrate","Cek tabel di phpMyAdmin","Pahami php artisan migrate:rollback"]},
+  {day:5,title:"Model + Seeder",tasks:["Buat Model Product","Tambahkan $fillable","Buat ProductSeeder","Isi 3-5 data dummy","Jalankan db:seed","Ambil data dengan Product::all()","Tampilkan dengan @foreach"]},
+  {day:6,title:"CRUD Create & Read",tasks:["Buat ProductController","Method index() — list produk","Method create() — form tambah","Method store() — simpan data","Buat validasi input","Buat products/index.blade.php","Buat products/create.blade.php","Tambahkan @csrf di form"]},
+  {day:7,title:"CRUD Update & Delete",tasks:["Method edit($id)","Method update($id)","Method destroy($id)","Buat products/edit.blade.php","Tombol Edit dan Hapus di tabel","@method('PUT') dan @method('DELETE')","Test CRUD lengkap"]},
+  {day:8,title:"Authentication",tasks:["Install Laravel Breeze","php artisan breeze:install blade","npm install && npm run dev","php artisan migrate","Test Register user baru","Test Login dan Logout","Proteksi route dengan middleware auth","Tidak bisa akses tanpa login"]},
+  {day:9,title:"Dashboard UI",tasks:["Buat DashboardController","Ambil statistik dari DB","Buat dashboard.blade.php","Tampilkan kartu statistik","Buat sidebar navigasi","Tampilkan Auth::user()->name","Semua halaman pakai layout sama"]},
+  {day:10,title:"Finishing & Review",tasks:["Test semua fitur","Test CRUD lengkap","Halaman tidak bisa diakses tanpa login","Rapikan tampilan Tailwind","Pahami semua route","Gambar alur MVC","Buat 1 fitur tambahan sendiri","Project selesai!"]}
+];
+
+let produkData=[];
+let kendalaData=[];
+let jobState={};
+let pEditId=null;
+let kEditId=null;
+let kImg=null;
+
+function loadData(){
+  try{
+    const p=localStorage.getItem('db_produk');if(p)produkData=JSON.parse(p);
+    const k=localStorage.getItem('db_kendala');if(k)kendalaData=JSON.parse(k);
+    const j=localStorage.getItem('db_jobstate');if(j)jobState=JSON.parse(j);
+  }catch(e){}
+}
+
+function saveData(){
+  try{
+    localStorage.setItem('db_produk',JSON.stringify(produkData));
+    localStorage.setItem('db_kendala',JSON.stringify(kendalaData));
+    localStorage.setItem('db_jobstate',JSON.stringify(jobState));
+  }catch(e){}
+}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function pad(n){return String(n).padStart(2,'0')}
+function today(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function fmtDate(s){if(!s)return'-';const[y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function fmtRp(n){return 'Rp '+Number(n).toLocaleString('id-ID')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ─── NAVIGATION ───
+function showSection(name, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else {
+    const all=document.querySelectorAll('.nav-item');
+    all.forEach(n=>{if(n.textContent.toLowerCase().includes(name.substring(0,4))) n.classList.add('active')});
+  }
+  const titles={dashboard:'Dashboard',produk:'Produk',users:'Users',laporan:'Laporan',jobdesk:'Jobdesk 10 Hari',kendala:'Kendala Teknis',routes:'Route List'};
+  document.getElementById('page-title').textContent=titles[name]||name;
+  document.getElementById('page-breadcrumb').textContent=`example-app.test / ${name}`;
+  if(name==='laporan') initLaporanChart();
+  if(name==='jobdesk') renderJobdesk();
+  if(name==='kendala') renderKendala();
+  updateAllStats();
+}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ─── STATS ───
+function updateAllStats(){
+  let totalTask=0,doneTask=0;
+  DAYS.forEach(d=>{
+    const st=jobState[`d${d.day}`]||{};
+    totalTask+=d.tasks.length;
+    doneTask+=d.tasks.filter((_,i)=>st[i]).length;
+  });
+  const pct=totalTask>0?Math.round(doneTask/totalTask*100):0;
+  document.getElementById('sc-produk').textContent=produkData.length;
+  document.getElementById('sc-progress').textContent=pct+'%';
+  document.getElementById('sc-progress-sub').textContent=`${doneTask} dari ${totalTask} tugas`;
+  document.getElementById('sc-progress-sub').className='stat-change '+(pct>50?'up':'');
+  const openK=kendalaData.filter(k=>k.status==='open').length;
+  document.getElementById('sc-kendala').textContent=openK;
+  document.getElementById('nb-produk').textContent=produkData.length;
+  document.getElementById('nb-kendala').textContent=openK;
+  document.getElementById('notif-dot').style.display=openK>0?'block':'none';
+  // kendala stats
+  document.getElementById('ks-total').textContent=kendalaData.length;
+  document.getElementById('ks-open').textContent=openK;
+  document.getElementById('ks-prog').textContent=kendalaData.filter(k=>k.status==='progress').length;
+  document.getElementById('ks-done').textContent=kendalaData.filter(k=>k.status==='done').length;
+  // laporan
+  document.getElementById('lap-aktif').textContent=produkData.length;
+  document.getElementById('lap-stok').textContent=produkData.reduce((a,p)=>a+parseInt(p.stok||0),0);
+  const lp=document.getElementById('lap-prog');
+  if(lp){lp.textContent=pct+'%';document.getElementById('lap-prog-bar').style.width=pct+'%';}
+  const doneKPct=kendalaData.length>0?Math.round(kendalaData.filter(k=>k.status==='done').length/kendalaData.length*100):0;
+  const ld=document.getElementById('lap-done');
+  if(ld){ld.textContent=doneKPct+'%';document.getElementById('lap-done-bar').style.width=doneKPct+'%';}
+  renderDashProgress();
+}
+
+// ─── DASHBOARD PROGRESS ───
+function renderDashProgress(){
+  const el=document.getElementById('dash-progress-list');
+  if(!el)return;
+  el.innerHTML=DAYS.slice(0,5).map(d=>{
+    const st=jobState[`d${d.day}`]||{};
+    const done=d.tasks.filter((_,i)=>st[i]).length;
+    const pct=Math.round(done/d.tasks.length*100);
+    const color=pct===100?'var(--success)':pct>50?'var(--accent)':'var(--warning)';
+    return `<div class="progress-row">
+      <span class="progress-label" style="font-size:12px">Hari ${d.day}: ${d.title}</span>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="progress-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── CHART ───
+let progressChart=null;
+function initProgressChart(){
+  const ctx=document.getElementById('progressChart');
+  if(!ctx)return;
+  const labels=DAYS.map(d=>`H${d.day}`);
+  const data=DAYS.map(d=>{
+    const st=jobState[`d${d.day}`]||{};
+    return Math.round(d.tasks.filter((_,i)=>st[i]).length/d.tasks.length*100);
+  });
+  if(progressChart) progressChart.destroy();
+  progressChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Progress (%)',
+        data,
+        backgroundColor: data.map(v=>v===100?'rgba(16,185,129,.8)':v>50?'rgba(99,102,241,.8)':'rgba(245,158,11,.8)'),
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,.06)'}},
+        x:{ticks:{font:{size:11}},grid:{display:false}}
+      }
+    }
+  });
+}
+
+let laporanChart=null;
+function initLaporanChart(){
+  const ctx=document.getElementById('laporanChart');
+  if(!ctx)return;
+  if(laporanChart) laporanChart.destroy();
+  const statuses=['Aktif','Non-aktif'];
+  const counts=[
+    produkData.filter(p=>p.status==='aktif').length,
+    produkData.filter(p=>p.status==='nonaktif').length
+  ];
+  laporanChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:statuses,datasets:[{data:counts.length?counts:[1,0],backgroundColor:['rgba(99,102,241,.8)','rgba(239,68,68,.8)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+  });
+}
+
+// ─── PRODUK CRUD ───
+function openAddProduk(){
+  pEditId=null;
+  document.getElementById('produk-modal-title').textContent='Tambah Produk';
+  ['p-nama','p-deskripsi','p-harga','p-stok'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-status').value='aktif';
+  document.getElementById('modal-produk').classList.add('open');
+}
+
+function editProduk(id){
+  const item=produkData.find(p=>p.id===id);if(!item)return;
+  pEditId=id;
+  document.getElementById('produk-modal-title').textContent='Edit Produk';
+  document.getElementById('p-nama').value=item.nama;
+  document.getElementById('p-deskripsi').value=item.deskripsi;
+  document.getElementById('p-harga').value=item.harga;
+  document.getElementById('p-stok').value=item.stok;
+  document.getElementById('p-status').value=item.status;
+  document.getElementById('modal-produk').classList.add('open');
+}
+
+function saveProduk(){
+  const nama=document.getElementById('p-nama').value.trim();
+  if(!nama){alert('Nama produk wajib diisi!');return;}
+  const item={
+    nama, deskripsi:document.getElementById('p-deskripsi').value.trim(),
+    harga:document.getElementById('p-harga').value||0,
+    stok:document.getElementById('p-stok').value||0,
+    status:document.getElementById('p-status').value
+  };
+  if(pEditId){
+    const idx=produkData.findIndex(p=>p.id===pEditId);
+    if(idx>=0) produkData[idx]={...produkData[idx],...item};
+  } else {
+    produkData.unshift({id:uid(),...item,created:today()});
+  }
+  saveData(); closeModal('modal-produk'); renderProduk(); updateAllStats();
+}
+
+function deleteProduk(id){
+  if(!confirm('Hapus produk ini?'))return;
+  produkData=produkData.filter(p=>p.id!==id);
+  saveData(); renderProduk(); updateAllStats();
+}
+
+function renderProduk(){
+  const tbody=document.getElementById('produk-tbody');
+  if(!produkData.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;font-size:13px">Belum ada produk. Klik "+ Tambah Produk"</td></tr>';
+    return;
+  }
+  tbody.innerHTML=produkData.map((p,i)=>`<tr>
+    <td style="color:#94a3b8">${i+1}</td>
+    <td><div style="display:flex;align-items:center;gap:10px">
+      <div class="product-img">📦</div>
+      <div><div style="font-weight:500;font-size:13px">${esc(p.nama)}</div><div style="font-size:11px;color:#94a3b8">${fmtDate(p.created)}</div></div>
+    </div></td>
+    <td style="color:#64748b;font-size:12px;max-width:200px">${esc(p.deskripsi||'-')}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:13px">${fmtRp(p.harga)}</td>
+    <td><span style="font-family:'DM Mono',monospace">${p.stok}</span></td>
+    <td>${p.status==='aktif'?'<span class="badge badge-green">● Aktif</span>':'<span class="badge badge-red">● Non-aktif</span>'}</td>
+    <td><div class="action-btns">
+      <button class="action-btn" title="Edit" onclick="editProduk('${p.id}')">✏️</button>
+      <button class="action-btn" title="Hapus" onclick="deleteProduk('${p.id}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ─── KENDALA CRUD ───
+function openAddKendala(){
+  kEditId=null;kImg=null;
+  document.getElementById('k-modal-title').textContent='Tambah Kendala';
+  ['k-kendala','k-solusi'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('k-status').value='open';
+  document.getElementById('k-date').value=today();
+  document.getElementById('k-preview').style.display='none';
+  document.getElementById('k-clear-img').style.display='none';
+  document.getElementById('k-file').value='';
+  document.getElementById('modal-kendala').classList.add('open');
+}
+
+function editKendala(id){
+  const item=kendalaData.find(k=>k.id===id);if(!item)return;
+  kEditId=id;kImg=item.img||null;
+  document.getElementById('k-modal-title').textContent='Edit Kendala';
+  document.getElementById('k-kendala').value=item.kendala;
+  document.getElementById('k-solusi').value=item.solusi;
+  document.getElementById('k-status').value=item.status;
+  document.getElementById('k-date').value=item.date;
+  const p=document.getElementById('k-preview');
+  if(item.img){p.src=item.img;p.style.display='block';document.getElementById('k-clear-img').style.display='inline-flex';}
+  else{p.style.display='none';document.getElementById('k-clear-img').style.display='none';}
+  document.getElementById('modal-kendala').classList.add('open');
+}
+
+function saveKendala(){
+  const kendala=document.getElementById('k-kendala').value.trim();
+  const solusi=document.getElementById('k-solusi').value.trim();
+  if(!kendala){alert('Deskripsi kendala wajib!');return;}
+  if(!solusi){alert('Solusi wajib diisi!');return;}
+  const item={kendala,solusi,status:document.getElementById('k-status').value,date:document.getElementById('k-date').value||today(),img:kImg};
+  if(kEditId){
+    const idx=kendalaData.findIndex(k=>k.id===kEditId);
+    if(idx>=0) kendalaData[idx]={...kendalaData[idx],...item};
+  } else {
+    kendalaData.unshift({id:uid(),...item});
+  }
+  saveData(); closeModal('modal-kendala'); renderKendala(); updateAllStats();
+}
+
+function deleteKendala(id){
+  if(!confirm('Hapus kendala ini?'))return;
+  kendalaData=kendalaData.filter(k=>k.id!==id);
+  saveData(); renderKendala(); updateAllStats();
+}
+
+function changeKStatus(id,val){
+  const idx=kendalaData.findIndex(k=>k.id===id);
+  if(idx>=0){kendalaData[idx].status=val;saveData();updateAllStats();}
+}
+
+function renderKendala(){
+  const q=(document.getElementById('k-search')||{}).value||'';
+  const fs=(document.getElementById('k-filter')||{}).value||'';
+  const filtered=kendalaData.filter(k=>{
+    const mQ=!q||k.kendala.toLowerCase().includes(q.toLowerCase())||k.solusi.toLowerCase().includes(q.toLowerCase());
+    const mS=!fs||k.status===fs;
+    return mQ&&mS;
+  });
+  const tbody=document.getElementById('k-tbody');
+  const empty=document.getElementById('k-empty');
+  if(!filtered.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const badgeMap={open:'badge-red',progress:'badge-yellow',done:'badge-green'};
+  const labelMap={open:'Belum',progress:'Diproses',done:'Selesai'};
+  tbody.innerHTML=filtered.map(k=>`<tr>
+    <td>${k.img?`<img src="${k.img}" style="width:58px;height:44px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid #f1f5f9" onclick="openImg('${k.id}')">`:'<div style="width:58px;height:44px;background:#f8fafc;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1px dashed #e2e8f0">🖼</div>'}</td>
+    <td><div style="font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(k.kendala)}</div></td>
+    <td><div style="font-size:12px;color:#64748b;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(k.solusi)}</div></td>
+    <td style="font-size:12px;color:#94a3b8">${fmtDate(k.date)}</td>
+    <td><select style="font-size:11px;border:1px solid #e2e8f0;border-radius:100px;padding:4px 8px;background:#f8fafc;cursor:pointer;width:100%;font-family:inherit" onchange="changeKStatus('${k.id}',this.value)">
+      <option value="open" ${k.status==='open'?'selected':''}>Belum Selesai</option>
+      <option value="progress" ${k.status==='progress'?'selected':''}>Diproses</option>
+      <option value="done" ${k.status==='done'?'selected':''}>Selesai</option>
+    </select></td>
+    <td><div class="action-btns">
+      <button class="action-btn" onclick="editKendala('${k.id}')">✏️</button>
+      <button class="action-btn" onclick="deleteKendala('${k.id}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+function clearKFilter(){
+  document.getElementById('k-search').value='';
+  document.getElementById('k-filter').value='';
+  renderKendala();
+}
+
+// ─── JOBDESK ───
+function renderJobdesk(){
+  const c=document.getElementById('jobdesk-container');
+  c.innerHTML=DAYS.map(d=>{
+    const st=jobState[`d${d.day}`]||{};
+    const done=d.tasks.filter((_,i)=>st[i]).length;
+    const pct=Math.round(done/d.tasks.length*100);
+    const color=pct===100?'var(--success)':pct>50?'var(--accent)':'var(--warning)';
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;padding:1rem 1.25rem;cursor:pointer;border-bottom:1px solid #f8fafc" onclick="toggleDay(${d.day})">
+        <span style="font-size:11px;font-weight:600;background:#ede9fe;color:var(--accent);padding:3px 10px;border-radius:100px;white-space:nowrap">Hari ${d.day}</span>
+        <span style="font-size:14px;font-weight:500;flex:1">${d.title}</span>
+        <span style="font-size:12px;color:#94a3b8">${done}/${d.tasks.length}</span>
+        <div style="width:80px;height:5px;background:#f1f5f9;border-radius:100px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color};border-radius:100px"></div></div>
+        <span style="font-size:12px;color:#94a3b8;font-family:'DM Mono',monospace;min-width:36px;text-align:right">${pct}%</span>
+        <span style="font-size:11px;color:#94a3b8" id="arr-${d.day}">${(jobState[`open${d.day}`])?'▲':'▼'}</span>
+      </div>
+      <div id="jd-body-${d.day}" style="display:${jobState[`open${d.day}`]?'block':'none'};padding:0 1.25rem 1rem">
+        ${d.tasks.map((task,i)=>{
+          const note=jobState[`note_${d.day}_${i}`]||'';
+          return `<div style="display:flex;align-items:flex-start;gap:10px;padding:.625rem 0;border-bottom:1px solid #f8fafc">
+            <input type="checkbox" ${st[i]?'checked':''} onchange="toggleTask(${d.day},${i},this.checked)"
+              style="width:15px;height:15px;margin-top:2px;cursor:pointer;flex-shrink:0;accent-color:var(--accent)">
+            <div style="flex:1">
+              <div style="font-size:13px;${st[i]?'text-decoration:line-through;color:#94a3b8':''};line-height:1.5">${esc(task)}</div>
+              <div style="margin-top:4px">
+                <button onclick="toggleTaskNote(${d.day},${i})" style="font-size:11px;padding:2px 8px;border:1px solid #e2e8f0;border-radius:6px;background:none;cursor:pointer;color:#94a3b8">${note?'📝 Lihat catatan':'+ Catatan'}</button>
+              </div>
+              <textarea id="tn-${d.day}-${i}" placeholder="Tulis catatan hasil..." onchange="saveTaskNote(${d.day},${i},this.value)"
+                style="display:${note?'block':'none'};width:100%;margin-top:6px;font-size:12px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:8px;font-family:'DM Sans',sans-serif;resize:vertical;min-height:60px;outline:none;color:#0f172a">${esc(note)}</textarea>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDay(d){
+  jobState[`open${d}`]=!jobState[`open${d}`];
+  saveData();renderJobdesk();
+}
+
+function toggleTask(d,i,val){
+  if(!jobState[`d${d}`]) jobState[`d${d}`]={};
+  jobState[`d${d}`][i]=val;
+  saveData();renderJobdesk();updateAllStats();initProgressChart();
+}
+
+function toggleTaskNote(d,i){
+  const el=document.getElementById(`tn-${d}-${i}`);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function saveTaskNote(d,i,val){
+  jobState[`note_${d}_${i}`]=val;
+  saveData();
+}
+
+// ─── IMAGE UPLOAD ───
+function dzOver(e){e.preventDefault();document.getElementById('drop-zone').style.background='#f0f4ff';}
+function dzLeave(){document.getElementById('drop-zone').style.background='';}
+function dzDrop(e){e.preventDefault();dzLeave();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))readKImg(f);}
+function dzPaste(e){
+  const its=(e.clipboardData||e.originalEvent.clipboardData).items;
+  for(let i in its){if(its[i].type.indexOf('image')!==-1){readKImg(its[i].getAsFile());e.preventDefault();break;}}
+}
+function kFileChange(e){const f=e.target.files[0];if(f)readKImg(f);}
+function readKImg(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    kImg=ev.target.result;
+    const p=document.getElementById('k-preview');
+    p.src=kImg;p.style.display='block';
+    document.getElementById('k-clear-img').style.display='inline-flex';
+  };
+  r.readAsDataURL(file);
+}
+function kClearImg(){
+  kImg=null;
+  document.getElementById('k-preview').style.display='none';
+  document.getElementById('k-clear-img').style.display='none';
+  document.getElementById('k-file').value='';
+}
+
+function openImg(id){
+  const k=kendalaData.find(k=>k.id===id);
+  if(!k||!k.img)return;
+  const w=window.open('','_blank');
+  w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${k.img}" style="max-width:95vw;max-height:95vh;border-radius:8px"></body></html>`);
+}
+
+// ─── MODAL ───
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('modal-produk');closeModal('modal-kendala');}});
+
+// ─── INIT ───
+loadData();
+renderProduk();
+renderKendala();
+updateAllStats();
+setTimeout(initProgressChart, 300);
+</script>
+</body>
+</html>
